@@ -88,25 +88,25 @@ def delMessages(stream_key): # non usato
     [ r.xdel( stream_name, i[0] ) for i in messages ]
 
 
-def requestItemList(stream_key, stream2_key):
-    # genra evento Itemlist e manda su stream
-    print("- requesting fornitore item list")
-    event = {"eventType": "itemlist", "condition":"", "skeySOUT":stream2_key}
-    writeStream(stream_key, event)
+# def requestSelling(stream_key, stream2_key):
+#     # genra evento Selling e manda su stream
+#     print("- requesting fornitore Selling")
+#     event = {"eventType": "selling", "condition":"", "skeySOUT":stream2_key}
+#     writeStream(stream_key, event)
 
-    # aspetta ack su stream 2
-    l = readStream2(stream2_key)
+#     # aspetta ack su stream 2
+#     l = readStream2(stream2_key)
 
-    listdiz=getEntryData3(l)
-    print(listdiz)
+#     listdiz=getEntryData3(l)
+#     print(listdiz)
 
-    return listdiz
+#     return listdiz
     
 
-def requestPurchase(itemListNEW, stream_key, stream2_key):
+def requestSelling(itemListNEW, stream_key, stream2_key):
     # evento da definire dopo aver ricevito ItemList
-    print("- requesting fornitore purchase")
-    event = {"eventType": "purchase", "skeySOUT":stream2_key}
+    print("- requesting fornitore selling")
+    event = {"eventType": "selling", "skeySOUT":stream2_key}
 
     writeStream(stream_key, event)
     for mess in itemListNEW:
@@ -163,19 +163,15 @@ r = connectToRedis()
 # definire 2 stream su redis (skeySIN e skeySOUT)
 tuple=createStreams_V2()
 
+# crea lista degli ogg da vendere
+itemList=[{'nomeOgg': 'mioOgg1', 'prezzo': '208', 'quantità': '331', 'posizione': 'Oman'},
+           {'nomeOgg': 'mioOgg2', 'prezzo': '372', 'quantità': '36', 'posizione': 'Berlino'},
+           {'nomeOgg': 'mioOgg3', 'prezzo': '11', 'quantità': '539', 'posizione': 'Roma'}]
+
+print(itemList)
+
 # richiede a server lista oggetti (manada a server richiesta su skeySIN, riceve lista di diz su skeySOUT)
-itemList= requestItemList(tuple[0], tuple[1]) #(skeySIN e skeySOUT)
-
-# TEST ONLY fornitore ordina meta della lista originale
-half = len(itemList)//2
-itemListNEW=[]
-for i in itemList[:half]:
-    i["quantità"]=5
-    itemListNEW.append(i)
-
-print(itemListNEW)
-
-requestPurchase(itemListNEW, tuple[0], tuple[1])
+requestSelling(itemList, tuple[0], tuple[1]) #(skeySIN e skeySOUT)
 
 # alla fine elimina le proprie stream
 

@@ -88,16 +88,16 @@ def readStream(stream_key):
 
 def readStreamOneMess(stream_key):
 
-    print( f"stream length: {r.xlen( stream_key )}")
-    print("-- reading from stream--")
+    # print( f"stream length: {r.xlen( stream_key )}")
+    # print("-- reading from stream--")
 
     # ottieni lastid su hashmap con chiave "key"
     last_id_returned=r.hget("hashMapServerLastID", key)
-    print("last_id_returned", last_id_returned)
+    # print("last_id_returned", last_id_returned)
 
-    print( f"stream length: {r.xlen( stream_key )}")
+    # print( f"stream length: {r.xlen( stream_key )}")
     l = r.xread( count=1, streams={stream_key: last_id_returned} )
-    print(l)
+    # print(l)
     if (l): # il not empty
         # for id, value in l[0][1]:
         #     print( f"id: {id} value: {value[b'v']}")
@@ -150,30 +150,28 @@ def writeStream2(stream2_key, ack):
 METHODS FOR COMMUNICATING DB-API-SIDE
 '''
 
-async def selectall():
+async def insertSelling(listtemp):
     async with AsyncPostgrestClient("http://localhost:3000") as client:
-        r = await client.schema("api").from_("ogginvendita").select("*").execute()
+        # es. i= {'nomeOgg': 'mioOgg1', 'prezzo': '208', 'quantità': '331', 'posizione': 'Oman'}
+            # r1 = await client.schema("api").from_("ogginvendita").select("*").execute()
+            # print("r.data \n", r1.data)
+        for i in listtemp:
+        #    for j in r.data: 
+        #         if i["nomeOgg"]==j["nomeOgg"] and i["prezzo"]==j["prezzo"]:
+        #             r = await client.schema("api").from_("ogginvendita").update({"quantità": str(int(j["quantità"])+int(i["quantità"])) }).execute()
+        #         else:
+            print("inserting item:", i)
+            r2 = await client.schema("api").from_("ogginvendita").insert(i).execute()
+            i["quantità"]=0
+            # print("r2.data \n", r2.data)
+            # print(r2.data[0]["id"])
+            i["id"]=str(int(r2.data[0]["id"]))
+            i["destinazione"] = ""
+            r3 = await client.schema("api").from_("oggdaconsegn").insert(i).execute()
+            i["tInvio"] = ""
+            r4 = await client.schema("api").from_("oggconsegnati").insert(i).execute()
+            
         return r   
-    
-async def buyUpdate(id, quantità):
-    async with AsyncPostgrestClient("http://localhost:3000") as client:
-
-        # sottrai quantità da ogg in "ogginvendita"
-        a = await client.schema("api").from_("ogginvendita").select("quantità").eq("id", id).execute()
-        qCorr1=a.data[0]["quantità"]
-        print("qCorr1:", qCorr1)
-        qNuova1=qCorr1 - int(quantità)
-        print("qNuova1:", qNuova1)
-        await client.schema("api").from_("ogginvendita").update({"quantità": qNuova1}).eq("id", id).execute()
-
-        # aggiungo quantità da ogg in "ogginvendita"
-        b = await client.schema("api").from_("oggdaconsegn").select("quantità").eq("id", id).execute()
-        qCorr2=b.data[0]["quantità"]
-        print("qCorr2:", qCorr2)
-        qNuova2=qCorr2 + int(quantità)
-        print("qNuova2:", qNuova2)
-        await client.schema("api").from_("oggdaconsegn").update({"quantità": qNuova2}).eq("id", id).execute()
-
 
 '''
 BEGIN OF MAIN
@@ -203,7 +201,7 @@ while True:
     # print("Prossima iterazione\n")
 
     for key in r.scan_iter("*IN"):
-        print(key)
+        # print(key)
         
         # check se skeySIN è in hashmap, se non c'è salvo coppia (skeySIN:0)
         if key not in r.hgetall("hashMapServerLastID"):
@@ -224,29 +222,8 @@ while True:
 
             print("checking eventType\n")
 
-
-            if messageDiz["eventType"]=="itemlist":
-                print("eventType is itemlist")
-
-                # richiedi snapshot db (check eventuali condizioni)
-                temp = asyncio.run(selectall())
-                snap=temp.data
-                print("itemlist:\n", snap)
-
-                # ack "error" = True se ci sono errori
-
-                # ottieni skeySOUT
-                print("ottieni skeySOUT")
-                out=messageDiz["skeySOUT"]
-
-                # sending itemlist to fornitore
-                print("-- sending itemlist to fornitore\n")
-                for i in snap:
-                    print(i)
-                    writeStream2(out, i)
-
-            elif messageDiz["eventType"]=="purchase":
-                print("eventType is purchase\n")
+            if messageDiz["eventType"]=="selling":
+                print("eventType is selling\n")
 
                 # aspetta che tutti gli altri messaggi (itemlist) vengano scritti su streamOUT
                 time.sleep(2) # POTENZIALE VULNERABILITA (dipende da quanto ci mette il server a scrivere tutto itemlist)
@@ -258,15 +235,15 @@ while True:
                 print(listtemp)
 
                 # richiedi db di aggiungi ogg in tabella diversa e aggiusta quantità
-                for i in listtemp:
-                    asyncio.run(buyUpdate(i["id"], i["quantità"]))
+
+                temp = asyncio.run(insertSelling(listtemp))
 
                 # ottieni skeySOUT
                 print("ottieni skeySOUT")
                 out=messageDiz["skeySOUT"]
 
                 print("scrivo ack su stream2")
-                finalAck={"ack": "OrderPlaced"}
+                finalAck={"ack": "SellingPlaced"}
                 writeStream2(out, finalAck)
                 # ack "error" = True se ci sono errori
                 # manda ack a fornitore

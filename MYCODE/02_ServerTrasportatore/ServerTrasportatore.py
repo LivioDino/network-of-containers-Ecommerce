@@ -150,30 +150,51 @@ def writeStream2(stream2_key, ack):
 METHODS FOR COMMUNICATING DB-API-SIDE
 '''
 
-async def selectall():
+async def selectItemListForn(caricoOgg):
     async with AsyncPostgrestClient("http://localhost:3000") as client:
-        r = await client.schema("api").from_("ogginvendita").select("*").execute()
-        return r   
-    
-async def buyUpdate(id, quantità):
-    async with AsyncPostgrestClient("http://localhost:3000") as client:
+        r = await client.schema("api").from_("oggdaconsegn").select("*").execute()
+        returnlist=[]
 
-        # sottrai quantità da ogg in "ogginvendita"
-        a = await client.schema("api").from_("ogginvendita").select("quantità").eq("id", id).execute()
-        qCorr1=a.data[0]["quantità"]
-        print("qCorr1:", qCorr1)
-        qNuova1=qCorr1 - int(quantità)
-        print("qNuova1:", qNuova1)
-        await client.schema("api").from_("ogginvendita").update({"quantità": qNuova1}).eq("id", id).execute()
+        caricoOggCorr = int(caricoOgg)
+        # print("r.data", r.data)
+        for i in r.data:
+            # print("i",i)
+            id= int(i["id"])
+            quantità= int(i["quantità"])
 
-        # aggiungo quantità da ogg in "ogginvendita"
-        b = await client.schema("api").from_("oggdaconsegn").select("quantità").eq("id", id).execute()
-        qCorr2=b.data[0]["quantità"]
-        print("qCorr2:", qCorr2)
-        qNuova2=qCorr2 + int(quantità)
-        print("qNuova2:", qNuova2)
-        await client.schema("api").from_("oggdaconsegn").update({"quantità": qNuova2}).eq("id", id).execute()
+            if caricoOggCorr==0:
+                break
+            
+            elif caricoOggCorr <= quantità:
+                x = caricoOggCorr
+                caricoOggCorr= 0
 
+            elif caricoOggCorr >= quantità:
+                x = quantità
+                caricoOggCorr= quantità - caricoOggCorr
+
+            # sottrai quantità da ogg in "oggdaconsegn"
+            a = await client.schema("api").from_("oggdaconsegn").select("quantità").eq("id", id).execute()
+            qCorr1=a.data[0]["quantità"]
+            print("qCorr1:", qCorr1)
+            qNuova1=qCorr1 - x
+            print("qNuova1", qNuova1)
+            await client.schema("api").from_("oggdaconsegn").update({"quantità": qNuova1}).eq("id", id).execute()
+
+            # aggiungo quantità da ogg in "oggconsegnati"
+            b = await client.schema("api").from_("oggconsegnati").select("quantità").eq("id", id).execute()
+            qCorr2=b.data[0]["quantità"]
+            print("qCorr2:", qCorr2)
+            qNuova2=qCorr2 + x
+            print("qNuova2:", qNuova2)
+            r2 = await client.schema("api").from_("oggconsegnati").update({"quantità": qNuova2}).eq("id", id).execute()
+            print("r2", r2)
+            r3=r2.data[0]
+            r3["quantità"]=x
+            print("r3", r3)
+            returnlist.append(r3)
+
+        return returnlist
 
 '''
 BEGIN OF MAIN
@@ -229,8 +250,8 @@ while True:
                 print("eventType is transport")
 
                 # richiedi snapshot db (check eventuali condizioni)
-                temp = asyncio.run(selectall())
-                snap=temp.data
+                temp = asyncio.run(selectItemListForn(messageDiz["caricoOgg"]))
+                snap=temp
                 print("itemlist:\n", snap)
 
                 # ack "error" = True se ci sono errori

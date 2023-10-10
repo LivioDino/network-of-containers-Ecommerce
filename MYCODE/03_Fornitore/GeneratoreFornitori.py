@@ -14,8 +14,11 @@ from importlib import reload
 INTERVALLO_MAX_FORNITORE=10.0
 PERC_CLIENTI_ACQUISTANTI=0.5
 PERC_OGGETTI_DA_COMPRARE=0.2
-MAX_QUANTITÀ_PER_OGGETTO=10
-MAX_QUANTITÀ_OGGETTI_DIVERSI=5
+MAX_QUANTITÀ_PER_OGGETTO=1000
+MAX_PREZZO_PER_OGGETTO=1000
+MAX_OGGETTI_DIVERSI=5
+LISTA_NOMI_TOT=["Wallet","Slipper","Washcloth","Door","House","Egg","Mp3 player","Shampoo","Plate","Rubber band","Crow","Bouquet of flowers"]
+LISTA_POSIZIONI_TOT=["Braavlurgh","Slazloit","Ribrada","Akrucadena","Fleflance","Fokosa","Kavouis","Guecrando","Ruohock","Kroework","Izhuukrico","Oklekok"]
 
 def generaOggetti():
     # oggetti generati devono essere scelti dalla lista ritornata dal db (oovero post richiesta snapshot db)
@@ -31,27 +34,24 @@ def fornitFunction():
     tuple=createStreams_V2()
 
     # richiede a server lista oggetti (manada a server richiesta su skeySIN, riceve lista di diz su skeySOUT)
-    itemList= requestItemList(tuple[0], tuple[1]) #(skeySIN e skeySOUT)
+    itemListNEW=[]
 
-    # generate if fornitore buys items (aka if checks only items)
-    compraBool = random.random() > PERC_CLIENTI_ACQUISTANTI
-    print("fornitore compra ogg:", compraBool)
+    for i in range(0,MAX_OGGETTI_DIVERSI):
+        ogg={'nomeOgg': '', 'prezzo': '', 'quantità': '', 'posizione': ''}
+        ogg["nomeOgg"]=random.choice(LISTA_NOMI_TOT)
+        ogg["prezzo"]= random.randint(1, MAX_PREZZO_PER_OGGETTO)
+        ogg["quantità"] = random.randint(1, MAX_QUANTITÀ_PER_OGGETTO)
+        ogg["posizione"]=random.choice(LISTA_POSIZIONI_TOT)
+        itemListNEW.append(ogg)
+        
+    # es. itemList=[{'nomeOgg': 'mioOgg1', 'prezzo': '208', 'quantità': '331', 'posizione': 'Oman'},
+    #            {'nomeOgg': 'mioOgg2', 'prezzo': '372', 'quantità': '36', 'posizione': 'Berlino'},
+    #            {'nomeOgg': 'mioOgg3', 'prezzo': '11', 'quantità': '539', 'posizione': 'Roma'}]
 
-    if compraBool:
-        # genera lista oggetti da snapsot db
-        itemListNEW=[]
-        for i in itemList:
-            if random.random() > PERC_OGGETTI_DA_COMPRARE:
-                i["quantità"]= random.randint(1, MAX_QUANTITÀ_PER_OGGETTO)
-                itemListNEW.append(i)
-                # se il fornitore sta comprando 5 oggetti diversi
-                if len(itemListNEW) == MAX_QUANTITÀ_OGGETTI_DIVERSI:
-                    break
+    print(itemListNEW)
 
-        print(itemListNEW)
-
-        # invia richiesta acquisto con lista ogg
-        requestPurchase(itemListNEW, tuple[0], tuple[1])
+    # invia richiesta acquisto con lista ogg
+    requestSelling(itemListNEW, tuple[0], tuple[1])
 
     # alla fine elimina le proprie stream
     r.delete(tuple[0]) # skeySIN

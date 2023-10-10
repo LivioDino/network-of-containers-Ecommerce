@@ -47,10 +47,11 @@ def getEntryData2(l):
 def getEntryData3(l):
     print("-- getting entry data --")
     listdiz=[]
-    for i in l[0][1]:
-        # print(i)
-        # print(i[1])
-        listdiz.append(i[1])
+    if (l):
+        for i in l[0][1]:
+            # print(i)
+            # print(i[1])
+            listdiz.append(i[1])
 
     return listdiz
 
@@ -150,29 +151,32 @@ def writeStream2(stream2_key, ack):
 METHODS FOR COMMUNICATING DB-API-SIDE
 '''
 
-async def selectall():
+async def selectItemList():
     async with AsyncPostgrestClient("http://localhost:3000") as client:
         r = await client.schema("api").from_("ogginvendita").select("*").execute()
         return r   
     
-async def buyUpdate(id, quantità):
+async def buyUpdate(listtemp):
     async with AsyncPostgrestClient("http://localhost:3000") as client:
+        for i in listtemp:
+            id= i["id"]
+            quantità= i["quantità"]
 
-        # sottrai quantità da ogg in "ogginvendita"
-        a = await client.schema("api").from_("ogginvendita").select("quantità").eq("id", id).execute()
-        qCorr1=a.data[0]["quantità"]
-        print("qCorr1:", qCorr1)
-        qNuova1=qCorr1 - int(quantità)
-        print("qNuova1:", qNuova1)
-        await client.schema("api").from_("ogginvendita").update({"quantità": qNuova1}).eq("id", id).execute()
+            # sottrai quantità da ogg in "ogginvendita"
+            a = await client.schema("api").from_("ogginvendita").select("quantità").eq("id", id).execute()
+            qCorr1=a.data[0]["quantità"]
+            print("qCorr1:", qCorr1)
+            qNuova1=qCorr1 - int(quantità)
+            print("qNuova1 (should be 0 or more):", qNuova1)
+            await client.schema("api").from_("ogginvendita").update({"quantità": qNuova1}).eq("id", id).execute()
 
-        # aggiungo quantità da ogg in "ogginvendita"
-        b = await client.schema("api").from_("oggdaconsegn").select("quantità").eq("id", id).execute()
-        qCorr2=b.data[0]["quantità"]
-        print("qCorr2:", qCorr2)
-        qNuova2=qCorr2 + int(quantità)
-        print("qNuova2:", qNuova2)
-        await client.schema("api").from_("oggdaconsegn").update({"quantità": qNuova2}).eq("id", id).execute()
+            # aggiungo quantità da ogg in "ogginvendita"
+            b = await client.schema("api").from_("oggdaconsegn").select("quantità").eq("id", id).execute()
+            qCorr2=b.data[0]["quantità"]
+            print("qCorr2:", qCorr2)
+            qNuova2=qCorr2 + int(quantità)
+            print("qNuova2:", qNuova2)
+            await client.schema("api").from_("oggdaconsegn").update({"quantità": qNuova2}).eq("id", id).execute()
 
 
 '''
@@ -229,7 +233,7 @@ while True:
                 print("eventType is itemlist")
 
                 # richiedi snapshot db (check eventuali condizioni)
-                temp = asyncio.run(selectall())
+                temp = asyncio.run(selectItemList())
                 snap=temp.data
                 print("itemlist:\n", snap)
 
@@ -258,8 +262,7 @@ while True:
                 print(listtemp)
 
                 # richiedi db di aggiungi ogg in tabella diversa e aggiusta quantità
-                for i in listtemp:
-                    asyncio.run(buyUpdate(i["id"], i["quantità"]))
+                asyncio.run(buyUpdate(listtemp))                 
 
                 # ottieni skeySOUT
                 print("ottieni skeySOUT")

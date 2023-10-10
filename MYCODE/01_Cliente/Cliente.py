@@ -96,9 +96,11 @@ def requestItemList(stream_key, stream2_key):
 
     # aspetta ack su stream 2
     l = readStream2(stream2_key)
+    listdiz= []
 
-    listdiz=getEntryData3(l)
-    print(listdiz)
+    if (l): # se lista ricevuta non è vuota, ovvero se tabella ogginvendita in non è vuota
+        listdiz=getEntryData3(l)
+        print(listdiz)
 
     return listdiz
     
@@ -173,7 +175,7 @@ for i in itemList[:half]:
     i["quantità"]=5
     itemListNEW.append(i)
 
-print(itemListNEW)
+print("itemListNEW \n", itemListNEW)
 
 requestPurchase(itemListNEW, tuple[0], tuple[1])
 

@@ -16,7 +16,7 @@ INTERVALLO_MAX_CLIENTE=10.0
 PERC_CLIENTI_ACQUISTANTI=0.5
 PERC_OGGETTI_DA_COMPRARE=0.2
 MAX_QUANTITÀ_PER_OGGETTO=10
-MAX_QUANTITÀ_OGGETTI_DIVERSI=5
+MAX_OGGETTI_DIVERSI=5
   
 def generaOggetti():
     # oggetti generati devono essere scelti dalla lista ritornata dal db (oovero post richiesta snapshot db)
@@ -46,7 +46,7 @@ def clientFunction():
                 i["quantità"]= random.randint(1, MAX_QUANTITÀ_PER_OGGETTO)
                 itemListNEW.append(i)
                 # se il Cliente sta comprando 5 oggetti diversi
-                if len(itemListNEW) == MAX_QUANTITÀ_OGGETTI_DIVERSI:
+                if len(itemListNEW) == MAX_OGGETTI_DIVERSI:
                     break
 
         print(itemListNEW)

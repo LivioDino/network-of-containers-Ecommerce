@@ -10,8 +10,6 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import MYREDISconfig as cfg
 
-
-
 # redis-server (lato cliente)
 REDIS_HOSTNAME_S1=cfg.REDIS_HOSTNAME_S1
 REDIS_PORT_S1=cfg.REDIS_PORT_S1
@@ -52,7 +50,8 @@ MAX_OGG_DIVERSI= 5 # for req3
 # Requisiti funzionali che il monitor deve controllare: (CONTROLALRE TERMINOLGIA)
 # 1   I messaggi tra Cliente e serverCliente vengono inviato attraverso redis in ordine cronologico corretto, ovvero ogni messaggio deve essere inviato solo dopo la precedente richiesta corrispondente (vedi schema)
 # 2   Dall'invio di una richiesta del Cliente alla recezione della corretta risposta, inviata da ServerCliente, devono passare massimo X secondi (10s) (caso 1,2 e 3,4 schema)
-# 3   Ogni Cliente può comprare massimo X articoli diversi per ogni ordine (5)
+# 3   Ogni Cliente può comprare massimo X articoli diversi per ogni richiesta (5)
+# 4(opt)   Ogni Fornitore può vendere massimo X articoli diversi per ogni richiesta (5)
 
 # Requisiti non funzionali che il monitor deve controllare:
 

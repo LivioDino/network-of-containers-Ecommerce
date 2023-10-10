@@ -88,10 +88,10 @@ def delMessages(stream_key): # non usato
     [ r.xdel( stream_name, i[0] ) for i in messages ]
 
 
-def requestTransport(stream_key, stream2_key):
+def requestTransport(caricoOgg, stream_key, stream2_key):
     # genra evento transport e manda su stream
     print("- requesting trasportatore item list")
-    event = {"eventType": "transport", "condition":"", "skeySOUT":stream2_key}
+    event = {"eventType": "transport", "caricoOgg": caricoOgg, "condition":"", "skeySOUT":stream2_key}
     writeStream(stream_key, event)
 
     # aspetta ack su stream 2
@@ -150,8 +150,10 @@ r = connectToRedis()
 # definire 2 stream su redis (skeySIN e skeySOUT)
 tuple=createStreams_V2()
 
+caricoOgg=10
+
 # richiede a server lista oggetti (manada a server richiesta su skeySIN, riceve lista di diz su skeySOUT)
-itemList= requestTransport(tuple[0], tuple[1]) #(skeySIN e skeySOUT)
+itemList= requestTransport(caricoOgg, tuple[0], tuple[1]) #(skeySIN e skeySOUT)
 
 print(itemList)
 
