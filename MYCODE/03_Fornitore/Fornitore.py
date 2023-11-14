@@ -31,7 +31,7 @@ def readACKStreamOld(stream2_key):
     print( f"after 10 sec block, got {ll} new messages on the stream2 \n")
     return ll
 
-def readStream2(stream2_key):
+def readStream2(stream2_key, r):
  
     print( f"stream length: {r.xlen( stream2_key )}")
     print("- reading from stream2")
@@ -39,7 +39,12 @@ def readStream2(stream2_key):
     r.xread( count=1, block=10000, streams={stream2_key: '$'} )
 
     # aspetta che tutti gli altri messaggi (itemlist) vengano scritti su streamOUT
-    time.sleep(2) # POTENZIALE VULNERABILITA (dipende da quanto ci mette il server a scrivere tutto itemlist)
+    check = True
+    while (check):
+        streamDim = r.xlen(stream2_key)
+        time.sleep(0.5)
+        if r.xlen(stream2_key) == streamDim:
+            check = False
 
     global last_id_returned
     print("last_id_returned", last_id_returned)
@@ -71,7 +76,7 @@ def getEntryData3(l):
 
     return listdiz
 
-def writeStream(stream_key, event):
+def writeStream(stream_key, event, r):
     
     print( f"stream length before write: {r.xlen( stream_key )}")
     print("- writing on stream")
@@ -103,17 +108,17 @@ def delMessages(stream_key): # non usato
 #     return listdiz
     
 
-def requestSelling(itemListNEW, stream_key, stream2_key):
+def requestSelling(itemListNEW, stream_key, stream2_key, r):
     # evento da definire dopo aver ricevito ItemList
     print("- requesting fornitore selling")
     event = {"eventType": "selling", "skeySOUT":stream2_key}
 
-    writeStream(stream_key, event)
+    writeStream(stream_key, event, r)
     for mess in itemListNEW:
-        writeStream(stream_key, mess)
+        writeStream(stream_key, mess, r)
         
     # aspetta ack su stream 2
-    l = readStream2(stream2_key)
+    l = readStream2(stream2_key, r)
 
 def createStreams():
     # genero id unico (usa indirizzo mac + timestamp)
@@ -129,8 +134,8 @@ def createStreams():
     print (skeySOUT, "\n")
 
     entryTest= {"test":0}
-    writeStream(skeySIN, entryTest)
-    writeStream(skeySOUT, entryTest)
+    writeStream(skeySIN, entryTest, r)
+    writeStream(skeySOUT, entryTest, r)
 
     delMessages(skeySIN)
     delMessages(skeySOUT)
@@ -157,23 +162,23 @@ if __name__ == '__main__':
     BEGIN OF MAIN
     '''
 
-# apre connessione "r" a redis
-r = connectToRedis()
+    # apre connessione "r" a redis
+    r = connectToRedis()
 
-# definire 2 stream su redis (skeySIN e skeySOUT)
-tuple=createStreams_V2()
+    # definire 2 stream su redis (skeySIN e skeySOUT)
+    tuple=createStreams_V2()
 
-# crea lista degli ogg da vendere
-itemList=[{'nomeOgg': 'mioOgg1', 'prezzo': '208', 'quantità': '331', 'posizione': 'Oman'},
-           {'nomeOgg': 'mioOgg2', 'prezzo': '372', 'quantità': '36', 'posizione': 'Berlino'},
-           {'nomeOgg': 'mioOgg3', 'prezzo': '11', 'quantità': '539', 'posizione': 'Roma'}]
+    # crea lista degli ogg da vendere
+    itemList=[{'nomeOgg': 'mioOgg1', 'prezzo': '208', 'quantità': '331', 'posizione': 'Oman'},
+            {'nomeOgg': 'mioOgg2', 'prezzo': '372', 'quantità': '36', 'posizione': 'Berlino'},
+            {'nomeOgg': 'mioOgg3', 'prezzo': '11', 'quantità': '539', 'posizione': 'Roma'}]
 
-print(itemList)
+    print(itemList)
 
-# richiede a server lista oggetti (manada a server richiesta su skeySIN, riceve lista di diz su skeySOUT)
-requestSelling(itemList, tuple[0], tuple[1]) #(skeySIN e skeySOUT)
+    # richiede a server lista oggetti (manada a server richiesta su skeySIN, riceve lista di diz su skeySOUT)
+    requestSelling(itemList, tuple[0], tuple[1], r) #(skeySIN e skeySOUT)
 
-# alla fine elimina le proprie stream
+    # alla fine elimina le proprie stream
 
-r.delete(tuple[0]) # skeySIN
-r.delete(tuple[1]) # skeySOUT
+    r.delete(tuple[0]) # skeySIN
+    r.delete(tuple[1]) # skeySOUT

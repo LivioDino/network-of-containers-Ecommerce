@@ -1,0 +1,32 @@
+# syntax=docker/dockerfile:1
+
+#pull ubuntu
+FROM ubuntu:22.04  
+
+RUN apt-get update -y
+RUN apt-get upgrade -y
+RUN apt-get install iputils-ping -y
+RUN apt-get update -y
+RUN apt-get upgrade -y
+RUN apt-get install apt-utils -y 
+RUN apt-get update -y
+RUN apt-get upgrade -y
+RUN apt-get install build-essential -y 
+RUN apt-get update -y
+RUN apt-get upgrade -y
+RUN apt-get install libxml2 libssl-dev -y 
+RUN apt-get update -y
+RUN apt-get upgrade -y
+RUN apt-get install libpqxx-dev libpq-dev -y 
+RUN apt-get update -y
+RUN apt-get upgrade -y
+RUN apt-get install redis redis-tools -y 
+
+# copy all from local folder to /usr/src
+COPY . /usr/app
+
+WORKDIR /usr/app/
+
+EXPOSE 6379
+
+CMD redis-server --protected-mode no

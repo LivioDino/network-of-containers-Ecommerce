@@ -9,6 +9,7 @@ from liveplot import *
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import MYREDISconfig as cfg
+import varConfig as vcfg
 
 # redis-server (lato cliente)
 REDIS_HOSTNAME_S1=cfg.REDIS_HOSTNAME_S1
@@ -56,8 +57,7 @@ MAX_OGG_DIVERSI= 5 # for req3
 # Requisiti non funzionali che il monitor deve controllare:
 
 # 5   Dall'invio di una richiesta del Cliente alla recezione della corretta risposta, inviata da ServerCliente, devono passare massimo X secondi (3s) (caso 1,2 e 3,4 schema)
-# 6   il sistema deve funzionare in uno scenario in cui clienti/venditori/trasportatori sono in quantità equa generata casualmente
-# 7   il sistema deve funzionare in scenari in cui clienti/venditori/trasportatori sono 0/pochi/molti 
+# 6   il sistema deve funzionare in scenari in cui clienti/venditori/trasportatori sono 0/pochi/molti 
  
 def main():
      
@@ -236,11 +236,12 @@ def main():
 
 
 
-            # req 6 e 7
+            # req 6
 
             # se almeno un errore di un requisito ha valore 1 (ovvero True)
-            if not (errReq1.value==0 and errReq2.value==0 and errReq3.value==0):
+            if not (errReq1.value==0 and errReq2.value==0 and errReq3.value==0 and errReq5.value==0):
                 errAllReq.value==1
+                vcfg.errAllReqVcfg==1
 
             # # count number of current clienti
             # countClienti.value = 0

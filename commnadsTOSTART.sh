@@ -11,6 +11,10 @@ sudo systemctl start redis-server.service
 sudo systemctl start redis-server2.service
 sudo systemctl start redis-server3.service
 
+sudo systemctl stop redis-server.service
+sudo systemctl stop redis-server2.service
+sudo systemctl stop redis-server3.service
+
 # per pushare su github (in directory network-of-ECOMMERCE)
 git push origin main
 

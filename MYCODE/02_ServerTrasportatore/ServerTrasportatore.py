@@ -263,6 +263,8 @@ while True:
                 # sending itemlist to trasportatore
                 print("-- sending itemlist to trasportatore\n")
                 for i in snap:
+                    i["destinazione"]="_"
+                    i["tInvio"]="_"
                     print(i)
                     writeStream2(out, i)
     

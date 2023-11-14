@@ -166,9 +166,9 @@ async def insertSelling(listtemp):
             # print("r2.data \n", r2.data)
             # print(r2.data[0]["id"])
             i["id"]=str(int(r2.data[0]["id"]))
-            i["destinazione"] = ""
+            i["destinazione"] = "_"
             r3 = await client.schema("api").from_("oggdaconsegn").insert(i).execute()
-            i["tInvio"] = ""
+            i["tInvio"] = "_"
             r4 = await client.schema("api").from_("oggconsegnati").insert(i).execute()
             
         return r   
@@ -226,7 +226,12 @@ while True:
                 print("eventType is selling\n")
 
                 # aspetta che tutti gli altri messaggi (itemlist) vengano scritti su streamOUT
-                time.sleep(2) # POTENZIALE VULNERABILITA (dipende da quanto ci mette il server a scrivere tutto itemlist)
+                check = True
+                while (check):
+                    streamDim = r.xlen(key)
+                    time.sleep(0.5)
+                    if r.xlen(key) == streamDim:
+                        check = False
 
                 # leggi lista oggetti comprati da skeySIN
                 zz = readStream(key)

@@ -253,7 +253,12 @@ while True:
                 print("eventType is purchase\n")
 
                 # aspetta che tutti gli altri messaggi (itemlist) vengano scritti su streamOUT
-                time.sleep(2) # POTENZIALE VULNERABILITA (dipende da quanto ci mette il server a scrivere tutto itemlist)
+                check = True
+                while (check):
+                    streamDim = r.xlen(key)
+                    time.sleep(0.5)
+                    if r.xlen(key) == streamDim:
+                        check = False
 
                 # leggi lista oggetti comprati da skeySIN
                 zz = readStream(key)

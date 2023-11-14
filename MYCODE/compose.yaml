@@ -1,0 +1,157 @@
+# Comments are provided throughout this file to help you get started.
+# If you need more help, visit the Docker compose reference guide at
+# https://docs.docker.com/compose/compose-file/
+
+# Here the instructions define your application as a service called "server".
+# This service is built from the Dockerfile in the current directory.
+# You can add other services your application may depend on here, such as a
+# database or a cache. For examples, see the Awesome Compose repository:
+# https://github.com/docker/awesome-compose
+
+version: "3"
+services:
+
+  generatorecliente:
+    build:
+      context: ./01_Cliente
+    ports:
+      - 8000:8000
+    depends_on:
+      - servercliente
+    environment: #pass argument from command line ex. docker-compose -e
+      - VARGENCLI=0
+
+  rediscliente:
+    build:
+      context: ./01_redisCliente
+    ports:
+      - 8010:8010
+    depends_on:
+      - api
+
+  servercliente:
+    build:
+      context: ./01_ServerCliente
+    ports:
+      - 8001:8001
+    depends_on:
+      - rediscliente
+
+  generatoretrasp:
+    build:
+      context: ./02__Trasportatore
+    ports:
+      - 8002:8002
+    depends_on:
+      - servertrasportatore
+    environment: #pass argument from command line ex. docker-compose -e
+      - VARGENTRASP=0
+
+  redistrasportatore:
+    build:
+      context: ./02_redisTrasportatore
+    ports:
+      - 8011:8011
+    depends_on:
+      - api
+
+  servertrasportatore:
+    build:
+      context: ./02_ServerTrasportatore
+    ports:
+      - 8003:8003
+    depends_on:
+      - redistrasportatore
+
+  generatorefornitori:
+    build:
+      context: ./03_Fornitore
+    ports:
+      - 8004:8004
+    depends_on:
+      - serverfornitore
+    environment: #pass argument from command line ex. docker-compose -e
+      - VARGENFORN=0
+
+  # redisfornitore:
+  #   build:
+  #     context: ./03_redisFornitore
+  #   ports:
+  #     - 8012:8012
+  #   depends_on:
+  #     - api
+
+  # redis:
+  #   build: ./03_redisFornitore
+  #   image: redis:1
+  #   # hostname: redis
+  #   # networks:
+  #   #   - mainloop
+  #   ports:
+  #     - "6380:6379"
+
+  redisfornitore:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6381:6381"
+    volumes:
+      - /path/to/local/dаta:/root/redis
+      - /path/to/local/redis.conf:etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=my-password
+      - REDIS_PORT=6381
+      - REDIS_DATABASES=16
+
+  serverfornitore:
+    build:
+      context: ./03_ServerFornitore
+    ports:
+      - 8005:8005
+    depends_on:
+      - redisfornitore
+
+  monitor:
+    build:
+      context: ./Monitor
+    ports:
+      - 8006:8006
+
+  api:
+    # build: ./DB #./postgrest tutorial.conf
+    image: postgrest/postgrest #tutorial
+    ports:
+      - "3000:3000"
+    environment:
+      PGRST_DB_URI: "postgres://postgres:mysecretpassword@db:5432/postgres" # "postgres://authenticator:mysecretpassword@localhost:5432/postgres"  #    PGRST_DB_URI: postgres://app_user:password@db:5432/app_db
+      PGRST_DB_SCHEMA: api # public
+      PGRST_DB_ANON_ROLE: web_anon # In production this role should not be the same as the one used for connection
+      PGRST_OPENAPI_SERVER_PROXY_URI: "http://127.0.0.1:3000" #172.18.0.2 #127.0.0.1:3000
+    depends_on:
+      - db
+    # networks:
+    #   - mainloop
+
+  db:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+    # networks:
+    #   - mainloop
+    # volumes: 
+    #   - ./psql/db.1.sql:/docker-entrypoint-initdb.d/create_tables.sql
+
+# networks:
+#   mainloop:
+#     name: home_net
+#     driver: bridge
+
+# Uncomment this if you want to persist the data. Create your boostrap SQL file in the project root
+#    volumes:
+#      - "./pgdata:/var/lib/postgresql/data"
+#      - "./init.sql:/docker-entrypoint-initdb.d/init.sql"
+

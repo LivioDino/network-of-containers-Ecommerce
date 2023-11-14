@@ -5,15 +5,20 @@ from multiprocessing import Process
 from time import sleep
 from Fornitore import *
 from importlib import reload
+import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import varConfig as vcfg
 
 # generatore crea eventi random:
 # "arrivo" fornitore, 
-# se aquistare oggetti (dopo snapshot del db),
-# scelta oggetti stessi
+# quantità oggetti da vendere
+# scelta oggetti da vendere
 
-INTERVALLO_MAX_FORNITORE=10.0
-PERC_CLIENTI_ACQUISTANTI=0.5
-PERC_OGGETTI_DA_COMPRARE=0.2
+CYCLE= [5.0, 10.0, 20.0] #INTERVALLO_MAX_CLIENTE_LOW_VOLUME=20.0    INTERVALLO_MAX_CLIENTE_MED_VOLUME=10.0  INTERVALLO_MAX_CLIENTE_HIGH_VOLUME=5.0
+CYCLE_SWITCH_NUM=10
+
+# PERC_CLIENTI_ACQUISTANTI=0.5
+# PERC_OGGETTI_DA_COMPRARE=0.2
 MAX_QUANTITÀ_PER_OGGETTO=1000
 MAX_PREZZO_PER_OGGETTO=1000
 MAX_OGGETTI_DIVERSI=5
@@ -36,7 +41,8 @@ def fornitFunction():
     # richiede a server lista oggetti (manada a server richiesta su skeySIN, riceve lista di diz su skeySOUT)
     itemListNEW=[]
 
-    for i in range(0,MAX_OGGETTI_DIVERSI):
+    interv = random.randint(1, MAX_OGGETTI_DIVERSI)
+    for i in range(0, interv):
         ogg={'nomeOgg': '', 'prezzo': '', 'quantità': '', 'posizione': ''}
         ogg["nomeOgg"]=random.choice(LISTA_NOMI_TOT)
         ogg["prezzo"]= random.randint(1, MAX_PREZZO_PER_OGGETTO)
@@ -51,7 +57,7 @@ def fornitFunction():
     print(itemListNEW)
 
     # invia richiesta acquisto con lista ogg
-    requestSelling(itemListNEW, tuple[0], tuple[1])
+    requestSelling(itemListNEW, tuple[0], tuple[1], r)
 
     # alla fine elimina le proprie stream
     r.delete(tuple[0]) # skeySIN
@@ -63,10 +69,30 @@ if __name__ == '__main__':
     BEGIN OF MAIN
     '''
 
+    iterCount=0 
+    cycleIter=0  
+    IntervalloMax=0.0
+
+    if len( sys.argv ) > 1:
+        random.seed(sys.argv[1]) # set the seed for the run
+        print("seed set:", sys.argv[1])
+
+    if vcfg.myseedVcfg != 0:
+        random.seed(vcfg.myseedVcfg) # set the seed for the run
+        print("seed set myseedVcfg:", vcfg.myseedVcfg)
+
     while True:
         
+        # ogni CYCLE_SWITCH_NUM clienti/fornitori/trasportatori cambia la frequenza di arrivo con intervallo max, cicla i valori in CYCLE
+        if iterCount % CYCLE_SWITCH_NUM==0:
+            IntervalloMax = CYCLE[cycleIter]
+            cycleIter = (cycleIter+1) % len(CYCLE)
+            print("IntervalloArrivo", IntervalloMax)
+
+        iterCount+=1
+
         # generate when next fornitore arrives
-        tarrivo = random.uniform(0.0, INTERVALLO_MAX_FORNITORE)
+        tarrivo = random.uniform(1.0, IntervalloMax)
         print("- Main : waiting for new fornitore")
         time.sleep(tarrivo)
 

@@ -31,7 +31,7 @@ def readACKStreamOld(stream2_key):
     print( f"after 10 sec block, got {ll} new messages on the stream2 \n")
     return ll
 
-def readStream2(stream2_key):
+def readStream2(stream2_key, r):
  
     print( f"stream length: {r.xlen( stream2_key )}")
     print("- reading from stream2")
@@ -39,7 +39,12 @@ def readStream2(stream2_key):
     r.xread( count=1, block=10000, streams={stream2_key: '$'} )
 
     # aspetta che tutti gli altri messaggi (itemlist) vengano scritti su streamOUT
-    time.sleep(2) # POTENZIALE VULNERABILITA (dipende da quanto ci mette il server a scrivere tutto itemlist)
+    check = True
+    while (check):
+        streamDim = r.xlen(stream2_key)
+        time.sleep(0.5)
+        if r.xlen(stream2_key) == streamDim:
+            check = False
 
     global last_id_returned
     print("last_id_returned", last_id_returned)
@@ -71,7 +76,7 @@ def getEntryData3(l):
 
     return listdiz
 
-def writeStream(stream_key, event):
+def writeStream(stream_key, event, r):
     
     print( f"stream length before write: {r.xlen( stream_key )}")
     print("- writing on stream")
@@ -88,14 +93,15 @@ def delMessages(stream_key): # non usato
     [ r.xdel( stream_name, i[0] ) for i in messages ]
 
 
-def requestItemList(stream_key, stream2_key):
+def requestItemList(stream_key, stream2_key, r):
     # genra evento Itemlist e manda su stream
     print("- requesting cliente item list")
     event = {"eventType": "itemlist", "condition":"", "skeySOUT":stream2_key}
-    writeStream(stream_key, event)
+
+    writeStream(stream_key, event, r)
 
     # aspetta ack su stream 2
-    l = readStream2(stream2_key)
+    l = readStream2(stream2_key, r)
     listdiz= []
 
     if (l): # se lista ricevuta non è vuota, ovvero se tabella ogginvendita in non è vuota
@@ -105,17 +111,17 @@ def requestItemList(stream_key, stream2_key):
     return listdiz
     
 
-def requestPurchase(itemListNEW, stream_key, stream2_key):
+def requestPurchase(itemListNEW, stream_key, stream2_key, r):
     # evento da definire dopo aver ricevito ItemList
     print("- requesting cliente purchase")
     event = {"eventType": "purchase", "skeySOUT":stream2_key}
 
-    writeStream(stream_key, event)
+    writeStream(stream_key, event, r)
     for mess in itemListNEW:
-        writeStream(stream_key, mess)
+        writeStream(stream_key, mess, r)
         
     # aspetta ack su stream 2
-    l = readStream2(stream2_key)
+    l = readStream2(stream2_key, r)
 
 def createStreams():
     # genero id unico (usa indirizzo mac + timestamp)
@@ -131,8 +137,8 @@ def createStreams():
     print (skeySOUT, "\n")
 
     entryTest= {"test":0}
-    writeStream(skeySIN, entryTest)
-    writeStream(skeySOUT, entryTest)
+    writeStream(skeySIN, entryTest, r)
+    writeStream(skeySOUT, entryTest, r)
 
     delMessages(skeySIN)
     delMessages(skeySOUT)
@@ -159,26 +165,26 @@ if __name__ == '__main__':
     BEGIN OF MAIN
     '''
 
-# apre connessione "r" a redis
-r = connectToRedis()
+    # apre connessione "r" a redis
+    r = connectToRedis()
 
-# definire 2 stream su redis (skeySIN e skeySOUT)
-tuple=createStreams_V2()
+    # definire 2 stream su redis (skeySIN e skeySOUT)
+    tuple=createStreams_V2()
 
-# richiede a server lista oggetti (manada a server richiesta su skeySIN, riceve lista di diz su skeySOUT)
-itemList= requestItemList(tuple[0], tuple[1]) #(skeySIN e skeySOUT)
+    # richiede a server lista oggetti (manada a server richiesta su skeySIN, riceve lista di diz su skeySOUT)
+    itemList= requestItemList(tuple[0], tuple[1], r) #(skeySIN e skeySOUT)
 
-# TEST ONLY cliente ordina meta della lista originale
-half = len(itemList)//2
-itemListNEW=[]
-for i in itemList[:half]:
-    i["quantità"]=5
-    itemListNEW.append(i)
+    # TEST ONLY cliente ordina meta della lista originale
+    half = len(itemList)//2
+    itemListNEW=[]
+    for i in itemList[:half]:
+        i["quantità"]=5
+        itemListNEW.append(i)
 
-print("itemListNEW \n", itemListNEW)
+    print("itemListNEW \n", itemListNEW)
 
-requestPurchase(itemListNEW, tuple[0], tuple[1])
+    requestPurchase(itemListNEW, tuple[0], tuple[1], r)
 
-# alla fine elimina le proprie stream
-r.delete(tuple[0]) # skeySIN
-r.delete(tuple[1]) # skeySOUT
+    # alla fine elimina le proprie stream
+    r.delete(tuple[0]) # skeySIN
+    r.delete(tuple[1]) # skeySOUT

@@ -43,30 +43,43 @@ OBIETTIVI DA IMPLEMENTARE:
     - rendere l'accesso al db sync invece che async? garantirebbe serialità e quindi atomicità operazioni del db?
     - venditori devono "vendere" qualcosa prima che clienti facciano azioni
         -clienti devono "comprare" qualcosa prima che i Traspostatori facciano azioni
-    
-
-
-OBIETTIVI DA IMPLEMENTARE Per successiva iterazione:
-
-    - finisci script per generatore clienti/venditori/trasportatori sono 0/pochi/molti
-    - Testare Traspostatori e Venditori (azioni su generatori, azioni su server dedicati, interazioni con DB)
-        - finisci testing Trasportatore e ServerTrasportatore. cambiare tInvio in db con timestamp e scrivi timestamp in "oggconsegnati" quando trasportatore fa azione
     - aggiusta monitor in modo che controlli contemporaneamente da i 3 server dedicati
         idea: lanciare 3 thread, 1 per ogni server dedicato, che aggiungono i comandi add su log, monitor deve leggere direttamente da log e fare controlli, controlli da fare sono diversi tra Cliente, trasportatore, Fornitore? si
             idea aggiuntiva: suddividere log in 3 log diversi, uno per ogni Entità (Cliente, trasportatore, Fornitore), ogni thread scrive su log dedicato e un unico monitor scorre i diversi log in modo equo ed applica le diverse condizioni
             oppure i 3 thread scrivono su un unico log e cotrolli vengono effettuati su linee in log ad es. con stessa porta (solo linee dal Cliente, trasportatore, Fornitore)
-    - modifica time.sleep in cliente e ServerCliente e negli altri containers
+    - moniotor cancella lines in log dopo averle analizzate? non credo. pushare il log su un db? se si quando?   
+
+
+
+OBIETTIVI DA IMPLEMENTARE Per successiva iterazione:
+
+    
+    - V Testare Traspostatori e Venditori (azioni su generatori, azioni su server dedicati, interazioni con DB)
+        - finisci testing Trasportatore e ServerTrasportatore. cambiare tInvio in db con timestamp e scrivi timestamp in "oggconsegnati" quando trasportatore fa azione
+    - V finisci script per generatore clienti/venditori/trasportatori sono 0/pochi/molti
+
+    - V modifica time.sleep in cliente e ServerCliente e negli altri containers
         - "come modifico?"
-            - sol. dopo 1 sec che non arrivano nuovi messaggi vai avanti?
+            - sol. dopo 1 sec che non arrivano nuovi messaggi vai avanti? implementato
+            - cliente invia numero x di messaggi che server deve ricevere, server legge quando ci sono x messaggi nuovi da leggere (nel frattempo aspetta)
+
+    - SMC:
+    - V aggiusta generatori e passa seed ai generatori, ed essi devono usare quel seed
+    - V su tabella db "monitorerror" salva anche timestamp della run nel momento in cui viene rilevato errore
+    - V total runs = M = ln(\delta)/ ln(1 − \epsilon) con \delta e \epsilon = 1E-3 oppure 1E-4
+    - V merge dei due branch del codice
+    
+    - V fai domanda di laurea
+    - per le run dividire time.sleep() in generatori per un fattore X, cosi da velocizzare simulazione SMC
+    - pusha su github
     
 
-    - controlla vid
+
+    
 
 
 POST:
     - script setup sulla futura macchina per creare mydb iniziale?
-    - esegui redis-server all'avvio di ServerCliente da bash
-    - termina redis-server alla chiusura di ServerCliente da bash (anche in caso di errore)
     - mettere parametri in un file .env? init?
 
 NOTE:
